@@ -16,7 +16,7 @@
 
 By using this application, you acknowledge and agree to the following:
 
-1.  **Agreement:** Using this app implies your agreement to Catbox.moe's [Terms of Service and Privacy Policy](https://catbox.moe/legal.php).
-2.  **Liability:** The developer of this application is **NOT** responsible for the files you upload.
-3.  **Risk:** You assume full responsibility for your actions. Uploading illegal or policy-violating content is done entirely at your own risk.
-4.  **FAQ:** You must visit **[catbox.moe](https://catbox.moe)** and read their FAQ before using this service.
+1. Using this app implies your agreement to Catbox.moe's [Terms of Service and Privacy Policy](https://catbox.moe/legal.php).
+2. The developer of this application is **NOT** responsible for the files you upload.
+3. You assume full responsibility for your actions. Uploading illegal or policy-violating content is done entirely at your own risk.
+4. You must visit **[catbox.moe](https://catbox.moe)** and read their FAQ before using this service.
