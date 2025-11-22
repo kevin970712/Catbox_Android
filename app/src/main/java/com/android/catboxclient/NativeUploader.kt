@@ -13,10 +13,14 @@ import java.util.UUID
 
 object NativeUploader {
 
-    fun upload(context: Context, uri: Uri, serviceType: ServiceType, time: String): String {
+    fun upload(
+        context: Context,
+        uri: Uri,
+        serviceType: ServiceType,
+        time: String,
+        onProgress: (Float) -> Unit
+    ): String {
         val safeFileName = getSafeFileName(context, uri)
-
-        // 翻譯錯誤訊息
         val file = uriToFile(context, uri, safeFileName) ?: throw Exception("Cannot read file")
 
         val boundary = "--------AliucordBoundary${UUID.randomUUID().toString().substring(0, 8)}"
@@ -34,12 +38,16 @@ object NativeUploader {
             doInput = true
             doOutput = true
             useCaches = false
+            setChunkedStreamingMode(8192)
             setRequestProperty("User-Agent", "Dalvik/2.1.0 (Linux; U; Android 10; Android Phone Build/QP1A.190711.020)")
             setRequestProperty("Connection", "Keep-Alive")
             setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
         }
 
         try {
+            val totalFileSize = file.length()
+            var totalBytesWritten = 0L
+
             DataOutputStream(connection.outputStream).use { output ->
 
                 fun writeFormField(name: String, value: String) {
@@ -64,6 +72,11 @@ object NativeUploader {
                     var bytesRead: Int
                     while (input.read(buffer).also { bytesRead = it } != -1) {
                         output.write(buffer, 0, bytesRead)
+                        output.flush()
+
+                        totalBytesWritten += bytesRead
+                        val progress = if (totalFileSize > 0) totalBytesWritten.toFloat() / totalFileSize.toFloat() else 0f
+                        onProgress(progress)
                     }
                 }
                 output.writeBytes(lineEnd)
@@ -75,10 +88,17 @@ object NativeUploader {
             val responseCode = connection.responseCode
             if (responseCode == 200) {
                 return connection.inputStream.bufferedReader().use { it.readText() }
+            } else if (responseCode == 504 || responseCode == 502) {
+                throw Exception("Server is overloaded. Please try uploading again.")
             } else {
-                val errorMsg = connection.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
-                // 翻譯 HTTP 錯誤訊息
-                throw Exception("Upload failed: HTTP $responseCode $errorMsg")
+                val errorStream = connection.errorStream
+                val errorMsg = errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+
+                if (errorMsg.trim().startsWith("<")) {
+                    throw Exception("Upload failed: HTTP $responseCode")
+                } else {
+                    throw Exception("Upload failed: HTTP $responseCode $errorMsg")
+                }
             }
 
         } finally {

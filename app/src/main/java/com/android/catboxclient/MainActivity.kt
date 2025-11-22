@@ -1,5 +1,6 @@
 package com.android.catboxclient
 
+// ... (Imports 保持不變)
 import android.content.ClipboardManager
 import android.content.Context
 import android.net.Uri
@@ -28,7 +29,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
-// --- 備案顏色 (Fallback) ---
 private val FallbackDarkColorScheme = darkColorScheme(
     primary = Color(0xFFD0BCFF),
     secondary = Color(0xFFCCC2DC),
@@ -71,7 +71,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// 開啟 Custom Tabs
 private fun openUrl(context: Context, url: String) {
     try {
         val builder = CustomTabsIntent.Builder()
@@ -116,18 +115,18 @@ fun CatboxScreen(viewModel: MainViewModel = viewModel()) {
             FilterChip(
                 selected = viewModel.selectedService == ServiceType.CATBOX,
                 onClick = { viewModel.selectedService = ServiceType.CATBOX },
-                label = { Text("Catbox (Perm)") } // Permanent
+                label = { Text("Catbox (Perm)") }
             )
             FilterChip(
                 selected = viewModel.selectedService == ServiceType.LITTERBOX,
                 onClick = { viewModel.selectedService = ServiceType.LITTERBOX },
-                label = { Text("Litterbox (Temp)") } // Temporary
+                label = { Text("Litterbox (Temp)") }
             )
         }
 
         if (viewModel.selectedService == ServiceType.LITTERBOX) {
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Expiration", style = MaterialTheme.typography.bodyMedium)
+            Text("Expiration:", style = MaterialTheme.typography.bodyMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("1h", "12h", "24h", "72h").forEach { time ->
                     FilterChip(
@@ -151,7 +150,19 @@ fun CatboxScreen(viewModel: MainViewModel = viewModel()) {
         Spacer(modifier = Modifier.height(24.dp))
 
         when (state) {
-            is UploadState.Loading -> CircularProgressIndicator()
+            is UploadState.Loading -> {
+                Box(contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(
+                        progress = state.progress,
+                        modifier = Modifier.size(64.dp), // 加大尺寸
+                        strokeWidth = 6.dp
+                    )
+                    Text(
+                        text = "${(state.progress * 100).toInt()}%",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
             is UploadState.Error -> {
                 Card(
                     colors = CardDefaults.cardColors(

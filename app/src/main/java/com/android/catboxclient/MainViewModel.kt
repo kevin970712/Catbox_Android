@@ -21,15 +21,24 @@ class MainViewModel : ViewModel() {
 
     fun uploadFile(context: Context, uri: Uri) {
         viewModelScope.launch {
-            uploadState = UploadState.Loading
+            // 初始狀態設為 0%
+            uploadState = UploadState.Loading(0f)
+
             try {
                 val resultUrl = withContext(Dispatchers.IO) {
-                    NativeUploader.upload(context, uri, selectedService, litterboxTime)
+                    NativeUploader.upload(
+                        context,
+                        uri,
+                        selectedService,
+                        litterboxTime,
+                        onProgress = { progress ->
+                            uploadState = UploadState.Loading(progress)
+                        }
+                    )
                 }
                 uploadState = UploadState.Success(resultUrl)
             } catch (e: Exception) {
                 e.printStackTrace()
-                // 翻譯未知錯誤訊息
                 uploadState = UploadState.Error(e.message ?: "An unknown error occurred")
             }
         }
@@ -38,7 +47,9 @@ class MainViewModel : ViewModel() {
 
 sealed class UploadState {
     object Idle : UploadState()
-    object Loading : UploadState()
+
+    data class Loading(val progress: Float) : UploadState()
+
     data class Success(val url: String) : UploadState()
     data class Error(val message: String) : UploadState()
 }
