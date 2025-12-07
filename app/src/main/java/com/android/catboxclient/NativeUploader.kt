@@ -18,6 +18,7 @@ object NativeUploader {
         uri: Uri,
         serviceType: ServiceType,
         time: String,
+        userHash: String?,
         onProgress: (Float) -> Unit
     ): String {
         val safeFileName = getSafeFileName(context, uri)
@@ -58,6 +59,11 @@ object NativeUploader {
                 }
 
                 writeFormField("reqtype", "fileupload")
+
+                if (serviceType == ServiceType.CATBOX && !userHash.isNullOrEmpty()) {
+                    writeFormField("userhash", userHash)
+                }
+
                 if (serviceType == ServiceType.LITTERBOX) {
                     writeFormField("time", time)
                 }

@@ -19,18 +19,33 @@ class MainViewModel : ViewModel() {
     var selectedService by mutableStateOf(ServiceType.CATBOX)
     var litterboxTime by mutableStateOf("1h")
 
+    // UserHash 狀態
+    var userHash by mutableStateOf("")
+
+    fun loadUserHash(context: Context) {
+        val prefs = context.getSharedPreferences("catbox_prefs", Context.MODE_PRIVATE)
+        userHash = prefs.getString("user_hash", "") ?: ""
+    }
+
+    fun updateUserHash(context: Context, newHash: String) {
+        userHash = newHash
+        val prefs = context.getSharedPreferences("catbox_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putString("user_hash", newHash).apply()
+    }
+
     fun uploadFile(context: Context, uri: Uri) {
         viewModelScope.launch {
-            // 初始狀態設為 0%
             uploadState = UploadState.Loading(0f)
 
             try {
                 val resultUrl = withContext(Dispatchers.IO) {
+                    // ★ 修正：確保參數順序正確
                     NativeUploader.upload(
-                        context,
-                        uri,
-                        selectedService,
-                        litterboxTime,
+                        context = context,
+                        uri = uri,
+                        serviceType = selectedService,
+                        time = litterboxTime,
+                        userHash = userHash, // 明確傳入 userHash
                         onProgress = { progress ->
                             uploadState = UploadState.Loading(progress)
                         }
@@ -47,9 +62,7 @@ class MainViewModel : ViewModel() {
 
 sealed class UploadState {
     object Idle : UploadState()
-
     data class Loading(val progress: Float) : UploadState()
-
     data class Success(val url: String) : UploadState()
     data class Error(val message: String) : UploadState()
 }
