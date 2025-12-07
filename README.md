@@ -1,10 +1,10 @@
 # Catbox Uploader
 
-**Catbox Uploader** is a simple and lightweight (less than 1MB) Android application that allows you to anonymously host files on the Catbox platform and generate direct download links.
+**Catbox Uploader** is a simple and lightweight Android application that allows you to anonymously host files on the Catbox platform and generate direct download links.
 
 ## Features
 
-*   **Lightweight:** The app size is under 1MB.
+*   **Lightweight:** The app size is about 1MB.
 *   **Anonymous Uploads:** No account required.
 *   **Dual Storage Modes:**
     *   **Catbox:** For **permanent** file storage.
