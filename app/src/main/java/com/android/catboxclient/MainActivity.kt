@@ -118,7 +118,6 @@ private fun openUrl(context: Context, url: String) {
 fun CatboxScreen(viewModel: MainViewModel = viewModel()) {
     val context = LocalContext.current
     val state = viewModel.uploadState
-
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -141,22 +140,16 @@ fun CatboxScreen(viewModel: MainViewModel = viewModel()) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        "Catbox Uploader",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                },
+                title = {},
                 actions = {
                     IconButton(onClick = {
-                        // 跳轉到設定 Activity
                         context.startActivity(Intent(context, SettingsActivity::class.java))
                     }) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent // 讓標題列透明，融合背景
+                    containerColor = Color.Transparent
                 )
             )
         }
@@ -165,12 +158,18 @@ fun CatboxScreen(viewModel: MainViewModel = viewModel()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues) // 避開 TopAppBar
+                .padding(paddingValues)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            Text(
+                text = "Catbox Uploader",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
 
+            Spacer(modifier = Modifier.height(24.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
