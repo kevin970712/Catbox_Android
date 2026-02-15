@@ -4,9 +4,6 @@ import android.content.Context
 import android.net.Uri
 import android.webkit.MimeTypeMap
 import java.io.DataOutputStream
-import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
@@ -21,8 +18,13 @@ object NativeUploader {
         userHash: String?,
         onProgress: (Float) -> Unit
     ): String {
-        val safeFileName = getSafeFileName(context, uri)
-        val file = uriToFile(context, uri, safeFileName) ?: throw Exception("Cannot read file")
+        val mimeType = context.contentResolver.getType(uri) ?: "application/octet-stream"
+        val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) ?: "tmp"
+        val safeFileName = "upload_${System.currentTimeMillis()}.$extension"
+
+        val totalFileSize = context.contentResolver.openFileDescriptor(uri, "r")?.use {
+            it.statSize
+        } ?: 0L
 
         val boundary = "--------AliucordBoundary${UUID.randomUUID().toString().substring(0, 8)}"
         val lineEnd = "\r\n"
@@ -39,15 +41,18 @@ object NativeUploader {
             doInput = true
             doOutput = true
             useCaches = false
-            setChunkedStreamingMode(8192)
-            setRequestProperty("User-Agent", "Dalvik/2.1.0 (Linux; U; Android 10; Android Phone Build/QP1A.190711.020)")
+            setChunkedStreamingMode(16384)
+            setRequestProperty(
+                "User-Agent",
+                "Dalvik/2.1.0 (Linux; U; Android 10; Android Phone Build/QP1A.190711.020)"
+            )
             setRequestProperty("Connection", "Keep-Alive")
             setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
         }
 
         try {
-            val totalFileSize = file.length()
             var totalBytesWritten = 0L
+            var lastUpdate = 0L
 
             DataOutputStream(connection.outputStream).use { output ->
 
@@ -59,37 +64,40 @@ object NativeUploader {
                 }
 
                 writeFormField("reqtype", "fileupload")
-
                 if (serviceType == ServiceType.CATBOX && !userHash.isNullOrEmpty()) {
                     writeFormField("userhash", userHash)
                 }
-
                 if (serviceType == ServiceType.LITTERBOX) {
                     writeFormField("time", time)
                 }
 
                 output.writeBytes(twoHyphens + boundary + lineEnd)
                 output.writeBytes("Content-Disposition: form-data; name=\"fileToUpload\"; filename=\"$safeFileName\"$lineEnd")
-                output.writeBytes("Content-Type: ${getMimeType(file)}$lineEnd")
+                output.writeBytes("Content-Type: $mimeType$lineEnd")
                 output.writeBytes(lineEnd)
 
-                FileInputStream(file).use { input ->
-                    val buffer = ByteArray(8192)
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    val buffer = ByteArray(16384) // 16KB Buffer
                     var bytesRead: Int
                     while (input.read(buffer).also { bytesRead = it } != -1) {
                         output.write(buffer, 0, bytesRead)
-                        output.flush()
-
                         totalBytesWritten += bytesRead
-                        val progress = if (totalFileSize > 0) totalBytesWritten.toFloat() / totalFileSize.toFloat() else 0f
-                        onProgress(progress)
+
+                        val currentTime = System.currentTimeMillis()
+                        if (currentTime - lastUpdate > 100) {
+                            if (totalFileSize > 0) {
+                                onProgress(totalBytesWritten.toFloat() / totalFileSize.toFloat())
+                            }
+                            lastUpdate = currentTime
+                        }
                     }
                 }
                 output.writeBytes(lineEnd)
-
                 output.writeBytes(twoHyphens + boundary + twoHyphens + lineEnd)
                 output.flush()
             }
+
+            onProgress(1f)
 
             val responseCode = connection.responseCode
             if (responseCode == 200) {
@@ -97,9 +105,7 @@ object NativeUploader {
             } else if (responseCode == 504 || responseCode == 502) {
                 throw Exception("Server is overloaded. Please try uploading again.")
             } else {
-                val errorStream = connection.errorStream
-                val errorMsg = errorStream?.bufferedReader()?.use { it.readText() } ?: ""
-
+                val errorMsg = connection.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
                 if (errorMsg.trim().startsWith("<")) {
                     throw Exception("Upload failed: HTTP $responseCode")
                 } else {
@@ -109,36 +115,6 @@ object NativeUploader {
 
         } finally {
             connection.disconnect()
-            try { file.delete() } catch (e: Exception) {}
         }
-    }
-
-    private fun getSafeFileName(context: Context, uri: Uri): String {
-        val mimeType = context.contentResolver.getType(uri)
-        val extension = if (mimeType != null) {
-            MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) ?: "tmp"
-        } else {
-            uri.path?.substringAfterLast(".") ?: "tmp"
-        }
-        return "upload_${System.currentTimeMillis()}.$extension"
-    }
-
-    private fun uriToFile(context: Context, uri: Uri, fileName: String): File? {
-        return try {
-            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
-            val tempFile = File(context.cacheDir, fileName)
-            FileOutputStream(tempFile).use { output ->
-                inputStream.copyTo(output)
-            }
-            inputStream.close()
-            tempFile
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
-
-    private fun getMimeType(file: File): String {
-        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(file.extension) ?: "application/octet-stream"
     }
 }

@@ -1,0 +1,31 @@
+<resources>
+    <string name="app_name">Catbox Client</string>
+
+    <string name="label_settings">設定</string>
+    <string name="title_catbox_uploader">Catbox 上傳器</string>
+    <string name="service_catbox">Catbox</string>
+    <string name="service_litterbox">Litterbox</string>
+    <string name="btn_send">上傳</string>
+
+    <string name="state_uploading">正在上傳檔案…</string>
+    <string name="state_success">檔案上傳成功</string>
+    <string name="state_failed">上傳失敗</string>
+    <string name="error_unknown">發生未知錯誤</string>
+
+    <string name="action_copy">複製連結</string>
+    <string name="action_qr_code">QR Code</string>
+    <string name="action_open">開啟</string>
+    <string name="action_send_another">上傳另一個檔案</string>
+    <string name="toast_copied">已複製</string>
+    <string name="btn_try_again">再試一次</string>
+
+    <string name="dialog_qr_title">掃描 QR Code</string>
+    <string name="content_description_qr">QR Code</string>
+
+    <string name="settings_title">設定</string>
+    <string name="settings_section_account">帳戶設定</string>
+    <string name="settings_user_hash_label">User Hash (選填)</string>
+    <string name="settings_user_hash_hint">輸入您的 User Hash 以將文件上傳至您的 Catbox 帳戶。留空則進行匿名上傳。</string>
+    <string name="content_description_back">返回</string>
+    <string name="content_description_toggle_visibility">切換密碼顯示狀態</string>
+</resources>

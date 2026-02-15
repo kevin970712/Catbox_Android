@@ -1,21 +1,20 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+-optimizationpasses 5
+-allowaccessmodification
+-repackageclasses ''
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+-keepattributes !RuntimeVisibleAnnotations,!RuntimeInvisibleAnnotations,!Signature
+-dontwarn kotlin.reflect.**
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+-keep class com.google.zxing.qrcode.QRCodeWriter { public <init>(); public com.google.zxing.common.BitMatrix encode(...); }
+-keep class com.google.zxing.BarcodeFormat { com.google.zxing.BarcodeFormat QR_CODE; }
+-keep class com.google.zxing.common.BitMatrix { public boolean get(int,int); public int getWidth(); public int getHeight(); }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+-keep class androidx.compose.runtime.** { *; }
+-dontwarn androidx.compose.material3.**
+
+-assumenosideeffects class android.util.Log {
+    public static *** d(...);
+    public static *** v(...);
+    public static *** i(...);
+}
+-keepattributes !SourceFile,!LineNumberTable

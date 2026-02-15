@@ -13,8 +13,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.browser.customtabs.CustomTabsIntent
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,23 +23,30 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.OpenInBrowser
+import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.darkColorScheme
@@ -50,29 +55,33 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+// --- Fallback Colors ---
 private val FallbackDarkColorScheme = darkColorScheme(
     primary = Color(0xFFD0BCFF),
-    secondary = Color(0xFFCCC2DC),
-    tertiary = Color(0xFFEFB8C8),
     background = Color(0xFF121212),
     surface = Color(0xFF1E1E1E),
 )
-
 private val FallbackLightColorScheme = lightColorScheme(
     primary = Color(0xFF6650a4),
-    secondary = Color(0xFF625b71),
-    tertiary = Color(0xFF7d5260),
     background = Color(0xFFFFFBFE),
     surface = Color(0xFFFFFBFE),
 )
@@ -81,12 +90,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
         setContent {
             val context = LocalContext.current
-            val darkTheme = isSystemInDarkTheme()
+            val darkTheme = androidx.compose.foundation.isSystemInDarkTheme()
             val dynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-
             val colorScheme = when {
                 dynamicColor && darkTheme -> dynamicDarkColorScheme(context)
                 dynamicColor && !darkTheme -> dynamicLightColorScheme(context)
@@ -95,7 +102,10 @@ class MainActivity : ComponentActivity() {
             }
 
             MaterialTheme(colorScheme = colorScheme) {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
                     CatboxScreen()
                 }
             }
@@ -105,11 +115,9 @@ class MainActivity : ComponentActivity() {
 
 private fun openUrl(context: Context, url: String) {
     try {
-        val builder = CustomTabsIntent.Builder()
-        val customTabsIntent = builder.build()
-        customTabsIntent.launchUrl(context, Uri.parse(url))
+        CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(url))
     } catch (e: Exception) {
-        Toast.makeText(context, "Cannot open link: ${e.message}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
     }
 }
 
@@ -118,24 +126,20 @@ private fun openUrl(context: Context, url: String) {
 fun CatboxScreen(viewModel: MainViewModel = viewModel()) {
     val context = LocalContext.current
     val state = viewModel.uploadState
+
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.loadUserHash(context)
-            }
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.loadUserHash(context)
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let { viewModel.uploadFile(context, it) }
-    }
+    val filePickerLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { viewModel.uploadFile(context, it) }
+        }
 
     Scaffold(
         topBar = {
@@ -143,148 +147,230 @@ fun CatboxScreen(viewModel: MainViewModel = viewModel()) {
                 title = {},
                 actions = {
                     IconButton(onClick = {
-                        context.startActivity(Intent(context, SettingsActivity::class.java))
+                        context.startActivity(
+                            Intent(
+                                context,
+                                SettingsActivity::class.java
+                            )
+                        )
                     }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = stringResource(R.string.label_settings)
+                        )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         }
     ) { paddingValues ->
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = "Catbox Uploader",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
+            when (val currentState = state) {
+                is UploadState.Idle -> {
+                    Icon(
+                        imageVector = Icons.Default.CloudUpload,
+                        contentDescription = null,
+                        modifier = Modifier.size(100.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        stringResource(R.string.title_catbox_uploader),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
 
-            Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(48.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                FilterChip(
-                    selected = viewModel.selectedService == ServiceType.CATBOX,
-                    onClick = { viewModel.selectedService = ServiceType.CATBOX },
-                    label = { Text("Catbox (Perm)") }
-                )
-                FilterChip(
-                    selected = viewModel.selectedService == ServiceType.LITTERBOX,
-                    onClick = { viewModel.selectedService = ServiceType.LITTERBOX },
-                    label = { Text("Litterbox (Temp)") }
-                )
-            }
-
-            if (viewModel.selectedService == ServiceType.LITTERBOX) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Expiration:", style = MaterialTheme.typography.bodyMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("1h", "12h", "24h", "72h").forEach { time ->
-                        FilterChip(
-                            selected = viewModel.litterboxTime == time,
-                            onClick = { viewModel.litterboxTime = time },
-                            label = { Text(time) }
-                        )
+                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                        SegmentedButton(
+                            selected = viewModel.selectedService == ServiceType.CATBOX,
+                            onClick = { viewModel.selectedService = ServiceType.CATBOX },
+                            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                        ) { Text(stringResource(R.string.service_catbox)) }
+                        SegmentedButton(
+                            selected = viewModel.selectedService == ServiceType.LITTERBOX,
+                            onClick = { viewModel.selectedService = ServiceType.LITTERBOX },
+                            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                        ) { Text(stringResource(R.string.service_litterbox)) }
                     }
-                }
-            }
 
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Button(
-                onClick = { filePickerLauncher.launch("*/*") },
-                enabled = state !is UploadState.Loading
-            ) {
-                Text(if (state is UploadState.Loading) "Uploading..." else "Select File & Upload")
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            when (state) {
-                is UploadState.Loading -> {
-                    Box(contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(
-                            progress = state.progress,
-                            modifier = Modifier.size(64.dp),
-                            strokeWidth = 6.dp
-                        )
-                        Text(
-                            text = "${(state.progress * 100).toInt()}%",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-                is UploadState.Error -> {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                        )
+                    Box(
+                        modifier = Modifier
+                            .height(50.dp)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "Error: ${state.message}",
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.padding(16.dp)
-                        )
-                    }
-                }
-                is UploadState.Success -> {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        )
-                    ) {
-                        Box(modifier = Modifier.fillMaxWidth()) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(
-                                    text = "Upload Successful!",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                SelectionContainer {
-                                    Text(
-                                        text = state.url,
-                                        style = MaterialTheme.typography.bodyLarge.copy(
-                                            textDecoration = TextDecoration.Underline
-                                        ),
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.clickable {
-                                            openUrl(context, state.url)
-                                        }
-                                    )
+                        if (viewModel.selectedService == ServiceType.LITTERBOX) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    listOf("1h", "12h", "24h", "72h").forEach { time ->
+                                        FilterChip(
+                                            selected = viewModel.litterboxTime == time,
+                                            onClick = { viewModel.litterboxTime = time },
+                                            label = { Text(time) }
+                                        )
+                                    }
                                 }
-                            }
-
-                            FilledTonalIconButton(
-                                onClick = {
-                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    val clip = android.content.ClipData.newPlainText("Catbox URL", state.url)
-                                    clipboard.setPrimaryClip(clip)
-                                    Toast.makeText(context, "Link copied", Toast.LENGTH_SHORT).show()
-                                },
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(8.dp)
-                            ) {
-                                Icon(Icons.Default.ContentCopy, contentDescription = "Copy")
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = { filePickerLauncher.launch("*/*") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Text(
+                            stringResource(R.string.btn_send),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
+
+                is UploadState.Loading -> {
+                    Text(
+                        stringResource(R.string.state_uploading),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "${(currentState.progress * 100).toInt()}%",
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    LinearProgressIndicator(
+                        progress = { currentState.progress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .padding(horizontal = 16.dp),
+                        strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                    )
+                }
+
+                is UploadState.Success -> {
+                    var showQrDialog by remember { mutableStateOf(false) }
+
+                    if (showQrDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showQrDialog = false },
+                            confirmButton = {},
+                            title = {
+                                Text(
+                                    stringResource(R.string.dialog_qr_title),
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            },
+                            text = {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    androidx.compose.foundation.Image(
+                                        bitmap = currentState.qrBitmap.asImageBitmap(),
+                                        contentDescription = stringResource(R.string.content_description_qr),
+                                        modifier = Modifier.size(200.dp)
+                                    )
+                                }
+                            }
+                        )
+                    }
+
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(80.dp),
+                        tint = Color(0xFF4CAF50)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        stringResource(R.string.state_success),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    Spacer(modifier = Modifier.height(32.dp))
+                    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = currentState.url,
+                            modifier = Modifier
+                                .padding(24.dp)
+                                .fillMaxWidth(),
+                            textAlign = TextAlign.Center,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(32.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        TextButton(onClick = {
+                            val clipboard =
+                                context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(
+                                android.content.ClipData.newPlainText(
+                                    "URL",
+                                    currentState.url
+                                )
+                            )
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.toast_copied),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }) {
+                            Icon(Icons.Default.ContentCopy, null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.action_copy))
+                        }
+                        TextButton(onClick = { showQrDialog = true }) {
+                            Icon(imageVector = Icons.Default.QrCode, contentDescription = null)
+                            Spacer(Modifier.width(4.dp))
+                            Text(stringResource(R.string.action_qr_code))
+                        }
+                        TextButton(onClick = { openUrl(context, currentState.url) }) {
+                            Icon(Icons.Default.OpenInBrowser, null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.action_open))
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(48.dp))
+                    Button(onClick = { viewModel.resetState() }) {
+                        Text(stringResource(R.string.action_send_another))
+                    }
+                }
+
+                is UploadState.Error -> {
+                    Text(
+                        stringResource(R.string.state_failed),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(currentState.message, textAlign = TextAlign.Center)
+                    Spacer(modifier = Modifier.height(32.dp))
+                    Button(onClick = { viewModel.resetState() }) {
+                        Text(stringResource(R.string.btn_try_again))
+                    }
+                }
+
                 else -> {}
             }
         }

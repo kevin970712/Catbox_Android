@@ -1,3 +1,31 @@
 <resources>
-    <string name="app_name">Catbox</string>
+    <string name="app_name">Catbox Client</string>
+
+    <string name="title_catbox_uploader">Catbox Uploader</string>
+    <string name="btn_send">SEND</string>
+    <string name="service_catbox">Catbox</string>
+    <string name="service_litterbox">Litterbox</string>
+    <string name="label_settings">Settings</string>
+
+    <string name="state_uploading">Uploading File</string>
+    <string name="state_success">File Uploaded Successfully</string>
+    <string name="state_failed">Upload Failed</string>
+    <string name="error_unknown">An unknown error occurred</string>
+
+    <string name="action_copy">Copy Link</string>
+    <string name="action_qr_code">QR Code</string>
+    <string name="action_open">Open</string>
+    <string name="action_send_another">Send Another File</string>
+    <string name="toast_copied">Copied</string>
+    <string name="btn_try_again">Try Again</string>
+
+    <string name="dialog_qr_title">Scan QR Code</string>
+    <string name="content_description_qr">QR Code</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_account">Account</string>
+    <string name="settings_user_hash_label">User Hash (Optional)</string>
+    <string name="settings_user_hash_hint">Enter your user hash to upload files to your Catbox account. Leave empty for anonymous uploads.</string>
+    <string name="content_description_back">Back</string>
+    <string name="content_description_toggle_visibility">Toggle password visibility</string>
 </resources>
