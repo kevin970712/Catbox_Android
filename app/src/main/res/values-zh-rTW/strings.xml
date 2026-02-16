@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Catbox Client</string>
+    <string name="app_name">Catbox</string>
 
     <string name="label_settings">設定</string>
     <string name="title_catbox_uploader">Catbox 上傳器</string>

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Catbox Client</string>
+    <string name="app_name">Catbox</string>
 
     <string name="title_catbox_uploader">Catbox Uploader</string>
     <string name="btn_send">SEND</string>
