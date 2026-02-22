@@ -1,3 +1,4 @@
+## ⚠Important: If you encounter connection problems, please visit [this website](https://status.catbox.moe/status/catbox) to check the status of catbox.moe. If the problem persists, please report in the issue.
 # Catbox Uploader
 
 **Catbox Uploader** is a simple and lightweight Android application that allows you to anonymously host files on the Catbox platform and generate direct download links.
