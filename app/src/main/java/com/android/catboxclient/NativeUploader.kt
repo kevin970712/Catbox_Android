@@ -1,6 +1,6 @@
 package com.android.catboxclient
 
-import android.content.Context
+import android.content.ContentResolver
 import android.net.Uri
 import android.webkit.MimeTypeMap
 import java.io.DataOutputStream
@@ -11,18 +11,18 @@ import java.util.UUID
 object NativeUploader {
 
     fun upload(
-        context: Context,
+        contentResolver: ContentResolver,
         uri: Uri,
         serviceType: ServiceType,
         time: String,
         userHash: String?,
         onProgress: (Float) -> Unit
     ): String {
-        val mimeType = context.contentResolver.getType(uri) ?: "application/octet-stream"
+        val mimeType = contentResolver.getType(uri) ?: "application/octet-stream"
         val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) ?: "tmp"
         val safeFileName = "upload_${System.currentTimeMillis()}.$extension"
 
-        val totalFileSize = context.contentResolver.openFileDescriptor(uri, "r")?.use {
+        val totalFileSize = contentResolver.openFileDescriptor(uri, "r")?.use {
             it.statSize
         } ?: 0L
 
@@ -41,7 +41,7 @@ object NativeUploader {
             doInput = true
             doOutput = true
             useCaches = false
-            setChunkedStreamingMode(16384)
+            setChunkedStreamingMode(65536)
             setRequestProperty(
                 "User-Agent",
                 "Dalvik/2.1.0 (Linux; U; Android 10; Android Phone Build/QP1A.190711.020)"
@@ -55,6 +55,10 @@ object NativeUploader {
             var lastUpdate = 0L
 
             DataOutputStream(connection.outputStream).use { output ->
+
+                fun writeString(s: String) {
+                    output.write(s.toByteArray(Charsets.UTF_8))
+                }
 
                 fun writeFormField(name: String, value: String) {
                     output.writeBytes(twoHyphens + boundary + lineEnd)
@@ -71,13 +75,13 @@ object NativeUploader {
                     writeFormField("time", time)
                 }
 
-                output.writeBytes(twoHyphens + boundary + lineEnd)
-                output.writeBytes("Content-Disposition: form-data; name=\"fileToUpload\"; filename=\"$safeFileName\"$lineEnd")
-                output.writeBytes("Content-Type: $mimeType$lineEnd")
-                output.writeBytes(lineEnd)
+                writeString(twoHyphens + boundary + lineEnd)
+                writeString("Content-Disposition: form-data; name=\"fileToUpload\"; filename=\"$safeFileName\"$lineEnd")
+                writeString("Content-Type: $mimeType$lineEnd")
+                writeString(lineEnd)
 
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    val buffer = ByteArray(16384) // 16KB Buffer
+                contentResolver.openInputStream(uri)?.use { input ->
+                    val buffer = ByteArray(65536) // 64KB Buffer
                     var bytesRead: Int
                     while (input.read(buffer).also { bytesRead = it } != -1) {
                         output.write(buffer, 0, bytesRead)

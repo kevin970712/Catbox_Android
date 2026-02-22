@@ -4,7 +4,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -49,12 +48,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,44 +63,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
-
-// --- Fallback Colors ---
-private val FallbackDarkColorScheme = darkColorScheme(
-    primary = Color(0xFFD0BCFF),
-    background = Color(0xFF121212),
-    surface = Color(0xFF1E1E1E),
-)
-private val FallbackLightColorScheme = lightColorScheme(
-    primary = Color(0xFF6650a4),
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-)
+import com.android.catboxclient.ui.theme.CatboxTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val repository = PreferenceRepository(this)
+        val viewModelFactory = MainViewModel.Factory(repository)
         setContent {
-            val context = LocalContext.current
-            val darkTheme = androidx.compose.foundation.isSystemInDarkTheme()
-            val dynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-            val colorScheme = when {
-                dynamicColor && darkTheme -> dynamicDarkColorScheme(context)
-                dynamicColor && !darkTheme -> dynamicLightColorScheme(context)
-                darkTheme -> FallbackDarkColorScheme
-                else -> FallbackLightColorScheme
-            }
-
-            MaterialTheme(colorScheme = colorScheme) {
+            CatboxTheme {
+                val viewModel: MainViewModel = viewModel(factory = viewModelFactory)
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
                 ) {
-                    CatboxScreen()
+                    CatboxScreen(viewModel)
                 }
             }
         }
@@ -127,43 +99,30 @@ fun CatboxScreen(viewModel: MainViewModel = viewModel()) {
     val context = LocalContext.current
     val state = viewModel.uploadState
 
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) viewModel.loadUserHash(context)
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-
     val filePickerLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { viewModel.uploadFile(context, it) }
+            uri?.let { viewModel.uploadFile(context.contentResolver, it) }
         }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {},
-                actions = {
-                    IconButton(onClick = {
-                        context.startActivity(
-                            Intent(
-                                context,
-                                SettingsActivity::class.java
-                            )
+                title = {}, actions = {
+                IconButton(onClick = {
+                    context.startActivity(
+                        Intent(
+                            context, SettingsActivity::class.java
                         )
-                    }) {
-                        Icon(
-                            Icons.Default.Settings,
-                            contentDescription = stringResource(R.string.label_settings)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    )
+                }) {
+                    Icon(
+                        Icons.Default.Settings,
+                        contentDescription = stringResource(R.string.label_settings)
+                    )
+                }
+            }, colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
-        }
-    ) { paddingValues ->
+        }) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -216,8 +175,7 @@ fun CatboxScreen(viewModel: MainViewModel = viewModel()) {
                                         FilterChip(
                                             selected = viewModel.litterboxTime == time,
                                             onClick = { viewModel.litterboxTime = time },
-                                            label = { Text(time) }
-                                        )
+                                            label = { Text(time) })
                                     }
                                 }
                             }
@@ -288,8 +246,7 @@ fun CatboxScreen(viewModel: MainViewModel = viewModel()) {
                                         modifier = Modifier.size(200.dp)
                                     )
                                 }
-                            }
-                        )
+                            })
                     }
 
                     Icon(
@@ -326,8 +283,7 @@ fun CatboxScreen(viewModel: MainViewModel = viewModel()) {
                                 context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             clipboard.setPrimaryClip(
                                 android.content.ClipData.newPlainText(
-                                    "URL",
-                                    currentState.url
+                                    "URL", currentState.url
                                 )
                             )
                             Toast.makeText(

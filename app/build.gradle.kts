@@ -12,8 +12,8 @@ android {
         applicationId = "com.android.catboxclient"
         minSdk = 24
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.02"
+        versionCode = 4
+        versionName = "1.03"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -50,11 +50,10 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
-    // 用於複製到剪貼簿等操作
-    implementation("androidx.compose.material:material-icons-extended")
-    implementation("androidx.browser:browser:1.8.0")
-    implementation("com.google.zxing:core:3.5.4")
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.material.icons.extended)
+    implementation(libs.androidx.browser)
+    implementation(libs.zxing.core)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
